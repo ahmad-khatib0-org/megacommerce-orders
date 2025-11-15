@@ -1,5 +1,6 @@
 import { StatusCode } from 'grpc-web'
 import { AppError as AppErrorProto } from '@megacommerce/proto/shared/v1/error'
+import { Context } from './context'
 
 // Error types and constants
 export type OptionalErr = Error | null
@@ -73,12 +74,6 @@ export interface AppErrorErrors {
   err: OptionalErr
   errorsInternal: Map<string, AppErrorError> | null
   errorsNestedInternal: Map<string, Map<string, AppErrorError>> | null
-}
-
-// Context interface (placeholder - you'll need to define this based on your actual Context struct)
-export interface Context {
-  acceptLanguage: string
-  // Add other context properties as needed
 }
 
 // Translate function type
@@ -182,22 +177,7 @@ export class AppError extends Error {
   }
 
   public static default(): AppError {
-    // You'll need to provide a default Context
-    const defaultContext: Context = {
-      acceptLanguage: 'en',
-      // Add other default context properties
-    }
-
-    return new AppError(
-      defaultContext,
-      '',
-      '',
-      '',
-      StatusCode.OK, // OK status code
-      null,
-      false,
-      null
-    )
+    return new AppError(Context.default(), '', '', '', StatusCode.OK, null, false, null)
   }
 
   // Convert to proto-generated struct (placeholder implementation)
