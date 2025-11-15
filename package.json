@@ -1,0 +1,29 @@
+{
+  "name": "megacommerce-orders",
+  "version": "0.0.2",
+  "description": "Megacommerce orders",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "dev:watch": "nodemon --exec ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/ahmad-khatib0-org/megacommerce-common.git"
+  },
+  "keywords": [
+    "megacommerce",
+    "orders",
+    "payment"
+  ],
+  "author": "AHMAD KHATIB",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
