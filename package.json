@@ -7,7 +7,7 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
-    "dev:watch": "nodemon --exec ts-node src/index.ts"
+    "dev:watch": "nodemon --exec 'ts-node -r tsconfig-paths/register' src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -24,11 +24,12 @@
     "@types/node": "^24.10.1",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.1",
-    "@megacommerce/proto": "^0.3.81",
+    "@megacommerce/proto": "^0.3.84",
     "dotenv": "^17.2.3",
     "grpc-web": "^2.0.2",
     "mustache": "^4.2.0",
