@@ -52,11 +52,11 @@ export class SimpleError extends Error {
 // InternalError class
 export class InternalError extends Error {
   constructor(
+    public path: string,
     public err: Error,
     public errType: ErrorType,
     public temp: boolean,
-    public msg: string,
-    public path: string
+    public msg: string
   ) {
     super(`InternalError: ${path}: ${msg}, temp: ${temp}, err: ${errType} ${err.message}`)
     this.name = 'InternalError'
@@ -307,4 +307,35 @@ export function createAppError(
   errors?: AppErrorErrors
 ): AppError {
   return new AppError(ctx, id, path, details, statusCode, idParams, false, null, errors)
+}
+
+export function appErrorProtoToError(appError: AppErrorProto): Error & AppErrorProto & { toJSON(): any } {
+  const error = new Error(appError.message) as Error & AppErrorProto & { toJSON(): any }
+
+  // assign properties from AppErrorProto to error
+  Object.defineProperties(error, {
+    detailedError: { value: appError.detailedError, enumerable: false },
+    id: { value: appError.id, enumerable: false },
+    requestId: { value: appError.requestId, enumerable: false },
+    statusCode: { value: appError.statusCode, enumerable: false },
+    where: { value: appError.where, enumerable: false },
+    skipTranslation: { value: appError.skipTranslation, enumerable: false },
+    errors: { value: appError.errors, enumerable: false },
+    errorsNested: { value: appError.errorsNested, enumerable: false },
+  })
+
+  // define toJSON for proper serialization (Sentry, JSON.stringify, etc.)
+  error.toJSON = () => ({
+    message: error.message,
+    detailedError: error.detailedError,
+    id: error.id,
+    requestId: error.requestId,
+    statusCode: error.statusCode,
+    where: error.where,
+    skipTranslation: error.skipTranslation,
+    errors: error.errors,
+    errorsNested: error.errorsNested,
+  })
+
+  return error
 }
