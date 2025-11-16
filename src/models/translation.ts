@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import 'server-only'
 import * as path from 'path'
 import { mkdir, readdir, readFile, writeFile } from 'fs/promises'
 
