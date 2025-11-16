@@ -22,6 +22,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
@@ -29,10 +30,13 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.1",
-    "@megacommerce/proto": "^0.3.84",
+    "@megacommerce/proto": "^0.3.86",
     "dotenv": "^17.2.3",
     "grpc-web": "^2.0.2",
     "mustache": "^4.2.0",
+    "pg": "^8.16.3",
+    "stripe": "^19.3.1",
+    "ulid": "^3.0.1",
     "uuid": "^13.0.0"
   }
 }
