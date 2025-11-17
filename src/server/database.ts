@@ -1,5 +1,6 @@
+import { Pool } from 'pg'
+
 import { Config } from '@megacommerce/proto/common/v1'
-import { Pool, PoolClient } from 'pg'
 
 let pool: Pool | null = null
 
@@ -24,12 +25,7 @@ export async function initDb(cfg: Config.Config) {
     allowExitOnIdle: false, // Don't allow process exit while connections are active
 
     // SSL/TLS settings (important for production)
-    ssl:
-      process.env.NODE_ENV === 'production'
-        ? {
-          rejectUnauthorized: false,
-        }
-        : false,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 
     // Connection validation
     keepAlive: true,
@@ -75,21 +71,6 @@ async function testConnectionWithRetry(pool: Pool, maxRetries: number): Promise<
 // Graceful shutdown
 export async function closeDb(): Promise<void> {
   console.log('Closing database connections...')
-  await pool?.end()
+  await getDb().end()
   console.log('Database connections closed')
-}
-
-export async function withTx<T>(fn: (client: PoolClient) => Promise<T>) {
-  const client = await getDb().connect()
-  try {
-    await client.query('BEGIN')
-    const res = await fn(client)
-    await client.query('COMMIT')
-    return res
-  } catch (err) {
-    await client.query('ROLLBACK')
-    throw err
-  } finally {
-    client.release()
-  }
 }
