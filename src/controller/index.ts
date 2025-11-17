@@ -1,0 +1,89 @@
+import Stripe from 'stripe'
+import { PoolClient } from 'pg'
+import grpc from '@grpc/grpc-js'
+import type { sendUnaryData, ServerUnaryCall } from '@grpc/grpc-js'
+
+import { Config } from '@megacommerce/proto/common/v1/config'
+const Orders =
+  require('@megacommerce/proto/orders/v1/orders') as typeof import('@megacommerce/proto/orders/v1/orders')
+
+import { orderCreate } from './orders_create'
+import { Context } from '@/models'
+import { middlewareContext } from '@/helpers'
+
+export interface Controller {
+  server: grpc.Server
+  db: PoolClient
+  stripe: Stripe
+  config: Config
+}
+
+let _controller: Controller
+
+export function controller() {
+  if (!_controller) throw new Error('controller is not initialized')
+  return _controller
+}
+
+function wrapUnaryHandler<Req, Res>(
+  fn: (ctr: Controller, ctx: Context, req: ServerUnaryCall<Req, Res>) => Promise<any>,
+  ctr: Controller
+) {
+  return async (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => {
+    const ctx = middlewareContext(call.metadata)
+
+    try {
+      const result = await fn(ctr, ctx, call)
+      // no need to check result.data or result.error, just return them
+      return callback(null, result)
+    } catch (err: any) {
+      console.error('handler threw error', err)
+      const message = err?.message ?? 'handler returned unexpected result'
+      return callback({ code: grpc.status.INTERNAL, message }, null)
+    }
+  }
+}
+
+export function initController({ db, config }: { db: PoolClient; config: Config }) {
+  const server = new grpc.Server()
+
+  const stripe = new Stripe(process.env['STRIPE_API_KEY'] as string)
+  const ctr: Controller = { server, db, stripe, config }
+
+  const handlers = {
+    OrderCreate: wrapUnaryHandler(orderCreate, ctr),
+    OrderGet: notImplemented('OrderGet'),
+    OrdersList: notImplemented('OrdersList'),
+    OrderCancel: notImplemented('OrderCancel'),
+    OrderRefund: notImplemented('OrderRefund'),
+  }
+
+  server.addService(Orders.OrdersServiceService, handlers)
+
+  _controller = ctr
+  return ctr
+}
+
+export async function runController(ctr: Controller) {
+  await new Promise<void>((res, rej) => {
+    const endpoint = 'localhost:50055'
+
+    ctr.server.bindAsync(endpoint, grpc.ServerCredentials.createInsecure(), (err, _) => {
+      if (err) return rej(err)
+      ctr.server.start()
+      console.log(`gRPC server started on ${endpoint}`)
+      res()
+    })
+  })
+}
+
+const notImplemented = <T>(methodName: string) => {
+  return (_: any, callback: sendUnaryData<T>) =>
+    callback(
+      {
+        code: grpc.status.UNIMPLEMENTED,
+        message: `${methodName} not implemented`,
+      },
+      null
+    )
+}
