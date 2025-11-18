@@ -1,7 +1,10 @@
 import { credentials } from '@grpc/grpc-js'
-const Proto = require('@megacommerce/proto/common/v1') as typeof import('@megacommerce/proto/common/v1')
 
-let cachedCommonClient: InstanceType<typeof Proto.Common.CommonServiceClient> | null = null
+const Common = require('@megacommerce/proto/common/v1') as typeof import('@megacommerce/proto/common/v1')
+const Products =
+  require('@megacommerce/proto/products/v1') as typeof import('@megacommerce/proto/products/v1')
+
+let cachedCommonClient: InstanceType<typeof Common.Common.CommonServiceClient> | null = null
 
 export function commonClient() {
   if (cachedCommonClient) return cachedCommonClient
@@ -13,6 +16,22 @@ export function commonClient() {
     )
   }
 
-  cachedCommonClient = new Proto.Common.CommonServiceClient(endpoint, credentials.createInsecure())
+  cachedCommonClient = new Common.Common.CommonServiceClient(endpoint, credentials.createInsecure())
   return cachedCommonClient
+}
+
+let cachedProductsClient: InstanceType<typeof Products.Products.ProductsServiceClient> | null = null
+
+export function productsClient() {
+  if (cachedProductsClient) return cachedProductsClient
+
+  const endpoint = process.env.PRODUCTS_GRPC_ENDPOINT
+  if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+    throw new Error(
+      'PRODUCTS_GRPC_ENDPOINT is not set. Set PRODUCTS_GRPC_ENDPOINT =host:port (e.g. localhost:50051)'
+    )
+  }
+
+  cachedProductsClient = new Products.Products.ProductsServiceClient(endpoint, credentials.createInsecure())
+  return cachedProductsClient
 }

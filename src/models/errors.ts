@@ -7,8 +7,6 @@ export type OptionalErr = Error | null
 export type OptionalParams = Map<string, any> | null
 
 export const MSG_ID_ERR_INTERNAL = 'server.internal.error'
-export const MSG_ERR_INTERNAL =
-  'Sorry, Unexpected internal server error. Our team has been notified. Please try again'
 
 export enum ErrorType {
   NoRows = 'no_rows',

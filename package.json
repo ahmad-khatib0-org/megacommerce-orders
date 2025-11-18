@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.1",
-    "@megacommerce/proto": "^0.3.86",
+    "@megacommerce/proto": "^0.3.92",
     "dotenv": "^17.2.3",
     "grpc-web": "^2.0.2",
     "mustache": "^4.2.0",
