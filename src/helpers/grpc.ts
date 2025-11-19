@@ -1,4 +1,5 @@
 import { credentials } from '@grpc/grpc-js'
+import { Struct } from '@megacommerce/proto/shared/v1/struct'
 
 const Common = require('@megacommerce/proto/common/v1') as typeof import('@megacommerce/proto/common/v1')
 const Products =
@@ -34,4 +35,24 @@ export function productsClient() {
 
   cachedProductsClient = new Products.Products.ProductsServiceClient(endpoint, credentials.createInsecure())
   return cachedProductsClient
+}
+
+export function objectToStruct(obj: { [key: string]: any }) {
+  const fields: { [key: string]: any } = {}
+
+  for (const [key, value] of Object.entries(obj)) {
+    fields[key] = { stringValue: value }
+  }
+
+  return Struct.create({ fields })
+}
+
+export function structToJsonObject(obj: Struct) {
+  const fields: { [key: string]: any } = {}
+
+  for (const [key, value] of Object.entries(obj.fields)) {
+    fields[key] = { stringValue: value }
+  }
+
+  return JSON.stringify(fields)
 }
