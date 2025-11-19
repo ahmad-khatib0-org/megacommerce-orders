@@ -1,6 +1,9 @@
-import { InventoryReservationStatus, OrderStatus, PaymentStatus } from '@megacommerce/proto/orders/v1/order'
+import { OrderStatus, PaymentStatus } from '@megacommerce/proto/orders/v1/order'
 import { OrderIdempotencyKeyStatus } from '@megacommerce/proto/orders/v1/order_idempotency_keys'
 import { OrderEventType } from '@megacommerce/proto/orders/v1/order_events'
+import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/inventory_reserve'
+
+export const ORDER_IDEMPOTENCY_KEY_EXPIRES_AT_MILISECONDS = 3 * 24 * 60 * 60 * 1000 // 3 days
 
 export function getOrderEventTypeValue(eventType: OrderEventType): string {
   const mapping: Record<OrderEventType, string> = {
@@ -59,12 +62,13 @@ export function getPaymentStatusValue(status: PaymentStatus): string {
 export function getOrderStatusValue(status: OrderStatus): string {
   const mapping: Record<OrderStatus, string> = {
     [OrderStatus.UNRECOGNIZED]: 'UNRECOGNIZED', // -1 can't happen
-    [OrderStatus.CREATED]: 'CREATED',
-    [OrderStatus.CONFIRMED]: 'CONFIRMED',
-    [OrderStatus.SHIPPED]: 'SHIPPED',
-    [OrderStatus.DELIVERED]: 'DELIVERED',
-    [OrderStatus.CANCELLED]: 'CANCELLED',
-    [OrderStatus.REFUNDED]: 'REFUNDED',
+    [OrderStatus.ORDER_STATUS_CREATED]: 'CREATED',
+    [OrderStatus.ORDER_STATUS_CONFIRMED]: 'CONFIRMED',
+    [OrderStatus.ORDER_STATUS_SHIPPED]: 'SHIPPED',
+    [OrderStatus.ORDER_STATUS_DELIVERED]: 'DELIVERED',
+    [OrderStatus.ORDER_STATUS_CANCELLED]: 'CANCELLED',
+    [OrderStatus.ORDER_STATUS_REFUNDED]: 'REFUNDED',
+    [OrderStatus.ORDER_STATUS_PAYMENT_FAILED]: 'PAYMENT_FAILED',
   }
 
   return mapping[status]
