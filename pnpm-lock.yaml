@@ -12,8 +12,8 @@ importers:
         specifier: ^1.14.1
         version: 1.14.1
       '@megacommerce/proto':
-        specifier: ^0.3.92
-        version: 0.3.92
+        specifier: ^0.4.16
+        version: 0.4.16
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
@@ -91,8 +91,8 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@megacommerce/proto@0.3.92':
-    resolution: {integrity: sha512-VGFAZj7cZe1rFH3bq5W9ZcTDu7hnHgmr/PxmzcIGv6IunR9GrWXq8sKQEJE+d1fNJ9fp2Ky4+kpg+nKiZsnrCA==}
+  '@megacommerce/proto@0.4.16':
+    resolution: {integrity: sha512-uihmGrsbwoxox3Q5j3QgByuCN9GbSuCKOoH+rKQPlRbxDMVzy9mj9Wm92AlYR7kh5Y7KURBzbsjiFZGXAG0oEA==}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -613,7 +613,7 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@megacommerce/proto@0.3.92':
+  '@megacommerce/proto@0.4.16':
     dependencies:
       '@bufbuild/protobuf': 2.10.1
       '@grpc/grpc-js': 1.14.1
