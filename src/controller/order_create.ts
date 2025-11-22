@@ -96,7 +96,10 @@ export async function orderCreate(
     await db.query('BEGIN')
     const idempotency = await acquireOrderIdempotencyKey(ctr.db, idempotencyKey)
     if (idempotency) {
-      if (idempotency.status === getOrderIdempotencyKeyStatusValue(OrderIdempotencyKeyStatus.COMPLETED)) {
+      if (
+        idempotency.status ===
+        getOrderIdempotencyKeyStatusValue(OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_COMPLETED)
+      ) {
         await db.query('COMMIT')
         return {
           data: {
@@ -104,7 +107,10 @@ export async function orderCreate(
           },
         }
       }
-      if (idempotency.status === getOrderIdempotencyKeyStatusValue(OrderIdempotencyKeyStatus.IN_PROGRESS)) {
+      if (
+        idempotency.status ===
+        getOrderIdempotencyKeyStatusValue(OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_IN_PROGRESS)
+      ) {
         await db.query('COMMIT')
         return {
           data: {
@@ -115,7 +121,7 @@ export async function orderCreate(
 
       // If status === 'FAILED', we allow continuing by updating it to IN_PROGRESS
       try {
-        const status = OrderIdempotencyKeyStatus.IN_PROGRESS
+        const status = OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_IN_PROGRESS
         await updateOrderIdempotencyKeyStatus(db, status, nowMs, idempotencyKey)
         await db.query('COMMIT')
       } catch (err) {
@@ -127,7 +133,9 @@ export async function orderCreate(
         id: ulid(),
         idempotencyKey: idempotencyKey,
         userId: ctx.session.userId,
-        status: getOrderIdempotencyKeyStatusValue(OrderIdempotencyKeyStatus.IN_PROGRESS),
+        status: getOrderIdempotencyKeyStatusValue(
+          OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_IN_PROGRESS
+        ),
         createdAt: nowMs.toString(),
         expiresAt: (nowMs + ORDER_IDEMPOTENCY_KEY_EXPIRES_AT_MILISECONDS).toString(),
       }
@@ -248,7 +256,8 @@ export async function orderCreate(
         console.error('Failed to insert order even after payment failure', err)
       }
       try {
-        updateOrderIdempotencyKeyStatus(db, OrderIdempotencyKeyStatus.FAILED, nowAfterFail, idempotencyKey)
+        const failed = OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_FAILED
+        updateOrderIdempotencyKeyStatus(db, failed, nowAfterFail, idempotencyKey)
         await db.query('COMMIT')
       } catch (err) {
         await db.query('ROLLBACK')
@@ -270,7 +279,7 @@ export async function orderCreate(
         eventType: getOrderEventTypeValue(OrderEventType.ORDER_EVENT_PAYMENT_CAPTURED),
         createdAt: nowAfterSuccess.toString(),
       })
-      let status = OrderIdempotencyKeyStatus.COMPLETED
+      let status = OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_COMPLETED
       updateOrderIdempotencyKeyAfterSuccessPayment(db, orderId, status, nowAfterSuccess, idempotencyKey)
       await db.query('COMMIT')
     } catch (successDbErr) {

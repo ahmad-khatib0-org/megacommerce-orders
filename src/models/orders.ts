@@ -25,10 +25,11 @@ export function getOrderEventTypeValue(eventType: OrderEventType): string {
 
 export function getOrderIdempotencyKeyStatusValue(status: OrderIdempotencyKeyStatus): string {
   const mapping: Record<OrderIdempotencyKeyStatus, string> = {
-    [OrderIdempotencyKeyStatus.UNRECOGNIZED]: 'UNRECOGNIZED', // -1 can't happen
-    [OrderIdempotencyKeyStatus.IN_PROGRESS]: 'IN_PROGRESS',
-    [OrderIdempotencyKeyStatus.COMPLETED]: 'COMPLETED',
-    [OrderIdempotencyKeyStatus.FAILED]: 'FAILED',
+    [OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_UNSPECIFIED]: 'UNSPECIFIED',
+    [OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_IN_PROGRESS]: 'IN_PROGRESS',
+    [OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_COMPLETED]: 'COMPLETED',
+    [OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_FAILED]: 'FAILED',
+    [OrderIdempotencyKeyStatus.UNRECOGNIZED]: 'UNRECOGNIZED',
   }
 
   return mapping[status]
