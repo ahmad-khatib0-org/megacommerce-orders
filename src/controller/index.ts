@@ -7,7 +7,7 @@ import { Config } from '@megacommerce/proto/common/v1/config'
 const Orders =
   require('@megacommerce/proto/orders/v1/orders') as typeof import('@megacommerce/proto/orders/v1/orders')
 
-import { orderCreate } from './orders_create'
+import { orderCreate } from './order_create'
 import { Context } from '@/models'
 import { middlewareContext } from '@/helpers'
 
