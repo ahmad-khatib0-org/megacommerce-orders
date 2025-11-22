@@ -2,7 +2,7 @@ import { PoolClient } from 'pg'
 import { OrderLineItem } from '@megacommerce/proto/orders/v1/order_line_items'
 
 import { Context } from '@/models'
-import { structToJsonObject } from '@/helpers'
+import { jsonObjectToStruct, jsonStringObjectToObject, structToJsonObject } from '@/helpers'
 
 export async function insertOrderLineItems(
   db: PoolClient,
@@ -57,4 +57,38 @@ export async function insertOrderLineItems(
       ]
     )
   }
+}
+
+export async function getOrderLineItemsByOrderId(db: PoolClient, orderId: string): Promise<OrderLineItem[]> {
+  const res = await db.query(
+    `SELECT id, order_id, product_id, variant_id, sku, title, attributes,
+            quantity, unit_price_cents, list_price_cents, sale_price_cents,
+            discount_cents, tax_cents, total_cents, applied_offer_ids, product_snapshot,
+            created_at, updated_at
+     FROM order_line_items
+     WHERE order_id = $1
+     ORDER BY created_at ASC`,
+    [orderId]
+  )
+
+  return res.rows.map<OrderLineItem>((row) => ({
+    id: row.id,
+    orderId: row.order_id,
+    productId: row.product_id,
+    variantId: row.variant_id,
+    sku: row.sku,
+    title: row.title,
+    attributes: jsonStringObjectToObject<string>(row.attributes),
+    quantity: row.quantity,
+    unitPriceCents: row.unit_price_cents,
+    listPriceCents: row.list_price_cents,
+    salePriceCents: row.sale_price_cents,
+    discountCents: row.discount_cents,
+    taxCents: row.tax_cents,
+    totalCents: row.total_cents,
+    appliedOfferIds: row.applied_offer_ids || [],
+    productSnapshot: jsonObjectToStruct(row.product_snapshot),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }))
 }

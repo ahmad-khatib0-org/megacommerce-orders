@@ -111,6 +111,31 @@ export function objectToStruct(obj: { [key: string]: any }) {
   return Struct.create({ fields })
 }
 
+export function jsonObjectToStruct(jsonString: string): Struct {
+  if (!jsonString) return Struct.create({ fields: {} })
+
+  const parsedFields = JSON.parse(jsonString)
+  const fields: { [key: string]: any } = {}
+
+  for (const [key, value] of Object.entries(parsedFields)) {
+    fields[key] = value
+  }
+
+  return Struct.create({ fields })
+}
+
+export function jsonStringObjectToObject<T>(jsonString: string): { [key: string]: T } {
+  if (!jsonString) return {}
+
+  const parsedFields = JSON.parse(jsonString)
+  const fields: { [key: string]: T } = {}
+
+  for (const [key, value] of Object.entries(parsedFields)) {
+    fields[key] = value as T
+  }
+  return fields
+}
+
 export function structToJsonObject(obj: Struct) {
   const fields: { [key: string]: any } = {}
 

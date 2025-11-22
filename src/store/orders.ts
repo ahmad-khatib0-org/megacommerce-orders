@@ -1,10 +1,11 @@
 import { PoolClient } from 'pg'
 import Stripe from 'stripe'
+import { OrderItem } from '@megacommerce/proto/orders/v1/order_get'
 import { Order, OrderStatus, PaymentStatus } from '@megacommerce/proto/orders/v1/order'
 
-import { structToJsonObject } from '@/helpers'
-import { Context, getOrderStatusValue, getPaymentStatusValue } from '@/models'
 import { getPaymentFees, getPaymentTransactionID } from '@/controller/payment'
+import { jsonObjectToStruct, jsonStringObjectToObject, structToJsonObject } from '@/helpers'
+import { Context, getOrderStatusValue, getPaymentStatusValue } from '@/models'
 
 // TODO: handle the serialization, insert null where needed
 export async function insertOrder(db: PoolClient, ctx: Context, req: Order) {
@@ -109,4 +110,49 @@ export async function updateOrderPaymentSucceeded(
       orderId,
     ]
   )
+}
+
+export async function getOrderById(db: PoolClient, orderId: string): Promise<OrderItem | null> {
+  const res = await db.query(
+    `SELECT id, user_id, currency_code, subtotal_cents, shipping_cents, tax_cents,
+            discount_cents, total_cents, payment_provider, payment_transaction_id,
+            payment_status, payment_provider_response, payment_fee_cents,
+            inventory_reservation_status, product_source, product_version,
+            shipping_address, billing_address, metadata, status, created_at, updated_at
+     FROM orders
+     WHERE id = $1
+     LIMIT 1`,
+    [orderId]
+  )
+
+  if (res.rowCount === 0) return null
+
+  const row = res.rows[0]
+  return {
+    id: row.id,
+    subtotalCents: row.subtotal_cents,
+    shippingCents: row.shipping_cents,
+    taxCents: row.tax_cents,
+    discountCents: row.discount_cents,
+    totalCents: row.total_cents,
+    currencyCode: row.currency_code,
+    lineItems: [],
+    shippingAddress: jsonObjectToStruct(row.shipping_address),
+    billingAddress: jsonObjectToStruct(row.billing_address),
+    payment: {
+      provider: row.payment_provider,
+      transactionId: row.payment_transaction_id,
+      status: row.payment_status,
+      paymentMethod: '',
+      providerResponse: jsonObjectToStruct(row.payment_provider_response),
+      feeCents: row.payment_fee_cents,
+    },
+    inventoryReservationStatus: row.inventory_reservation_status,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    productSource: row.product_source,
+    productVersion: row.product_version,
+    metadata: jsonStringObjectToObject<string>(row.metadata),
+  }
 }
