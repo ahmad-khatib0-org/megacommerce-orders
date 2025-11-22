@@ -6,8 +6,8 @@ import { OrderLineItemRequest } from '@megacommerce/proto/orders/v1/order_create
 import { OrderLineItem } from '@megacommerce/proto/orders/v1/order_line_items'
 
 import { AppError, createAppError, MSG_ID_ERR_INTERNAL } from './errors'
-import { productsClient } from '@/helpers'
 import { Context } from './context'
+import { productsClient } from '@/helpers'
 
 export async function orderCreateLineItemsValidate(
   ctx: Context,
@@ -28,7 +28,7 @@ export async function orderCreateLineItemsValidate(
 
   const getProductSnapshot = (productId: string) => {
     return new Promise<ProductSnapshot>((res, rej) => {
-      productsClient().productSnapshot({ productId }, (err, response) => {
+      productsClient(ctx).productSnapshot({ productId }, (err, response) => {
         if (err) rej(ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL))
         if (response.error) rej(response.error) // this already toProto
         if (!response.data) rej(ai('products.not_found.error', StatusCode.NOT_FOUND))

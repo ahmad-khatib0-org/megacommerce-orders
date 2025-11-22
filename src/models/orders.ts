@@ -1,7 +1,7 @@
 import { OrderStatus, PaymentStatus } from '@megacommerce/proto/orders/v1/order'
 import { OrderIdempotencyKeyStatus } from '@megacommerce/proto/orders/v1/order_idempotency_keys'
 import { OrderEventType } from '@megacommerce/proto/orders/v1/order_events'
-import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/inventory_reserve'
+import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/reservation_get'
 
 export const ORDER_IDEMPOTENCY_KEY_EXPIRES_AT_MILISECONDS = 3 * 24 * 60 * 60 * 1000 // 3 days
 
@@ -36,15 +36,40 @@ export function getOrderIdempotencyKeyStatusValue(status: OrderIdempotencyKeySta
 
 export function getInventoryReservationStatusValue(status: InventoryReservationStatus): string {
   const mapping: Record<InventoryReservationStatus, string> = {
-    [InventoryReservationStatus.UNRECOGNIZED]: 'UNRECOGNIZED', // -1 can't happen
-    [InventoryReservationStatus.INVENTORY_UNKNOWN]: 'UNKNOWN',
-    [InventoryReservationStatus.INVENTORY_RESERVED]: 'RESERVED',
-    [InventoryReservationStatus.INVENTORY_PARTIALLY_RESERVED]: 'PARTIALLY_RESERVED',
-    [InventoryReservationStatus.INVENTORY_NOT_RESERVED]: 'NOT_RESERVED',
-    [InventoryReservationStatus.INVENTORY_PENDING]: 'PENDING',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_UNSPECIFIED]: 'UNRECOGNIZED', // 0
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_RESERVED]: 'RESERVED',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_PARTIALLY_RESERVED]: 'PARTIALLY_RESERVED',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_NOT_RESERVED]: 'NOT_RESERVED',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_PENDING]: 'PENDING',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_RELEASED]: 'RELEASED',
+    [InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_FULFILLED]: 'FULFILLED',
+    [InventoryReservationStatus.UNRECOGNIZED]: 'UNRECOGNIZED', // -1 i'm not sure why this get added !
   }
 
   return mapping[status]
+}
+
+export function getInventoryReservationStatusFromString(statusStr: string): InventoryReservationStatus {
+  const upperStatus = statusStr.toUpperCase()
+
+  switch (upperStatus) {
+    case 'RESERVED':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_RESERVED
+    case 'PARTIALLY_RESERVED':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_PARTIALLY_RESERVED
+    case 'NOT_RESERVED':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_NOT_RESERVED
+    case 'PENDING':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_PENDING
+    case 'RELEASED':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_RELEASED
+    case 'FULFILLED':
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_FULFILLED
+    case 'UNRECOGNIZED':
+      return InventoryReservationStatus.UNRECOGNIZED
+    default:
+      return InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_UNSPECIFIED
+  }
 }
 
 export function getPaymentStatusValue(status: PaymentStatus): string {
@@ -69,6 +94,8 @@ export function getOrderStatusValue(status: OrderStatus): string {
     [OrderStatus.ORDER_STATUS_CANCELLED]: 'CANCELLED',
     [OrderStatus.ORDER_STATUS_REFUNDED]: 'REFUNDED',
     [OrderStatus.ORDER_STATUS_PAYMENT_FAILED]: 'PAYMENT_FAILED',
+    [OrderStatus.ORDER_STATUS_PAYMENT_SUCCEEDED]: 'PAYMENT_SUCCEEDED',
+    [OrderStatus.ORDER_STATUS_REFUND_REQUESTED]: 'REFUND_REQUESTED',
   }
 
   return mapping[status]

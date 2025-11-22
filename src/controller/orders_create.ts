@@ -9,10 +9,7 @@ import {
   OrderIdempotencyKey,
   OrderIdempotencyKeyStatus,
 } from '@megacommerce/proto/orders/v1/order_idempotency_keys'
-import {
-  InventoryReservationStatus,
-  InventoryReserveRequestItem,
-} from '@megacommerce/proto/inventory/v1/inventory_reserve'
+import { InventoryReserveRequestItem } from '@megacommerce/proto/inventory/v1/inventory_reserve'
 
 import {
   acquireOrderIdempotencyKey,
@@ -21,6 +18,7 @@ import {
   updateOrderIdempotencyKeyStatus,
 } from '@/store/idempotency'
 import {
+  AppErrorErrors,
   Context,
   createAppError,
   getInventoryReservationStatusValue,
@@ -42,6 +40,7 @@ import { insertOrderEvent } from '@/store/order_events'
 import { OrderEvent, OrderEventType } from '@megacommerce/proto/orders/v1/order_events'
 import Stripe from 'stripe'
 import { chargePayment } from './payment'
+import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/reservation_get'
 
 export async function orderCreate(
   ctr: Controller,
@@ -58,8 +57,10 @@ export async function orderCreate(
   // 7. call Stripe to charge
   // 8. update order to CONFIRMED or PAYMENT_FAILED
 
-  let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT) => {
-    return createAppError(ctx, 'orders.controller.orderCreate', id, null, '', statusCode).toProto()
+  let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT, err?: Error) => {
+    let errors: AppErrorErrors | undefined
+    if (err) errors = { err, errorsInternal: null, errorsNestedInternal: null }
+    return createAppError(ctx, 'orders.controller.orderCreate', id, null, '', statusCode, errors).toProto()
   }
 
   // TODO: complete the note, promotion, shipping method validation and insertion
@@ -120,7 +121,7 @@ export async function orderCreate(
         await db.query('COMMIT')
       } catch (err) {
         await db.query('ROLLBACK')
-        return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL) }
+        return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
       }
     } else {
       const data: OrderIdempotencyKey = {
@@ -136,7 +137,7 @@ export async function orderCreate(
         await db.query('COMMIT')
       } catch (err) {
         await db.query('ROLLBACK')
-        return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL) }
+        return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
       }
     }
 
@@ -156,24 +157,12 @@ export async function orderCreate(
       quantity: l.quantity,
     }))
 
-    const inventoryResp = await inventoryReserve(ctr, orderId, reservationLines)
+    const inventoryResp = await inventoryReserve(ctx, orderId, reservationLines)
     if (inventoryResp.error) return { error: inventoryResp.error }
-
-    if (
-      inventoryResp.data!.status ===
-      getInventoryReservationStatusValue(InventoryReservationStatus.INVENTORY_NOT_RESERVED)
-    ) {
-      try {
-        const status = OrderIdempotencyKeyStatus.FAILED
-        await updateOrderIdempotencyKeyStatus(db, status, Date.now(), idempotencyKey)
-        return { error: ai('orders.items.out_of_stock', StatusCode.UNAVAILABLE) }
-      } catch (err) {
-        return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL) }
-      }
-    }
 
     await db.query('BEGIN')
 
+    const inventoryReservationStatus = getInventoryReservationStatusValue(inventoryResp.data!.status)
     const orderPayload: Order = {
       id: orderId,
       userId: ctx.session.userId,
@@ -187,7 +176,7 @@ export async function orderCreate(
       paymentTransactionId: '',
       paymentStatus: getPaymentStatusValue(PaymentStatus.PAYMENT_UNKNOWN),
       paymentFeeCents: '',
-      inventoryReservationStatus: inventoryResp.data!.status,
+      inventoryReservationStatus: inventoryReservationStatus,
       productSource: 'products-service',
       shippingAddress: shippingAddress,
       billingAddress: billingAddress,
@@ -218,7 +207,7 @@ export async function orderCreate(
       await db.query('COMMIT')
     } catch (err) {
       await db.query('ROLLBACK')
-      return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL) }
+      return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
     }
 
     let stripeResult: Stripe.PaymentIntent
@@ -226,16 +215,17 @@ export async function orderCreate(
       stripeResult = await chargePayment(ctr, totalCents, currencyCode, paymentMethodToken, idempotencyKey)
     } catch (chargeErr) {
       // Payment failed or timed out: release inventory and mark failure
+
       // TODO:: retry the request and if still fails, send it to DLQ topic
       try {
-        await inventoryRelease(inventoryResp.data!.reservationToken)
+        await inventoryRelease(ctx, inventoryResp.data!.reservationToken)
       } catch (err) {
         console.error('inventory release failed after payment error', err)
       }
 
       // update DB: mark order PAYMENT_FAILED and idempotency FAILED
-      // TODO: consider retries and send to DLQ on failure
 
+      // TODO: consider retries and send to DLQ on failure
       const nowAfterFail = Date.now()
       await db.query('BEGIN')
       try {
@@ -265,7 +255,8 @@ export async function orderCreate(
         await db.query('ROLLBACK')
         console.error('Failed to update order_idempotency_keys table after payment failure', err)
       }
-      return { error: ai('orders.payment.failed', StatusCode.INTERNAL) }
+
+      return { error: ai('orders.payment.failed', StatusCode.INTERNAL), chargeErr }
     }
 
     // --- Step F: Payment succeeded — update DB and idempotency (small transaction) ---
@@ -286,11 +277,10 @@ export async function orderCreate(
     } catch (successDbErr) {
       await db.query('ROLLBACK')
       // If DB update fails after charge, we need reconciliation. Log and return error.
+      //
       // TODO: send the required data to a DLQ to be processed
-      console.error(
-        'Failed to finalize order after successful payment, schedule reconciliation',
-        successDbErr
-      )
+      const msg = 'Failed to finalize order after successful payment, schedule reconciliation'
+      console.error(msg, successDbErr)
       return {
         data: {
           message: Trans.tr(ctx.acceptLanguage, 'orders.create.already_created'),
@@ -304,6 +294,6 @@ export async function orderCreate(
     } catch (rbErr) {
       console.error(rbErr) // ignore
     }
-    return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL) }
+    return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
   }
 }
