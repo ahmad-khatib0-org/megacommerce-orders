@@ -29,11 +29,12 @@ export async function insertOrderLineItems(
         total_cents,
         applied_offer_ids,
         product_snapshot,
+        shipping_cents,
         created_at,
         updated_at
       ) VALUES (
         $1,$2,$3,$4,$5, $6,$7::JSONB,$8,$9,$10,
-        $11,$12,$13,$14,$15, $16::JSONB,$17,$18
+        $11,$12,$13,$14,$15, $16::JSONB,$17,$18,$19
       )`,
       [
         item.id,
@@ -52,6 +53,7 @@ export async function insertOrderLineItems(
         parseInt(item.totalCents),
         item.appliedOfferIds,
         item.productSnapshot ? structToJsonObject(item.productSnapshot) : null,
+        parseInt(item.shippingCents),
         parseInt(item.createdAt),
         item.updatedAt ? parseInt(item.updatedAt) : null,
       ]
@@ -64,20 +66,42 @@ export async function getOrderLineItemsByOrderId(db: PoolClient, orderId: string
     `SELECT id, order_id, product_id, variant_id, sku, title, attributes,
             quantity, unit_price_cents, list_price_cents, sale_price_cents,
             discount_cents, tax_cents, total_cents, applied_offer_ids, product_snapshot,
-            created_at, updated_at
+            status, shipping_cents, created_at, updated_at
      FROM order_line_items
      WHERE order_id = $1
      ORDER BY created_at ASC`,
     [orderId]
   )
 
-  return res.rows.map<OrderLineItem>((row) => ({
+  return res.rows.map<OrderLineItem>((row) => buildOrderLineItem(row))
+}
+
+export async function getOrderLineItemByID(db: PoolClient, id: string): Promise<OrderLineItem | null> {
+  const res = await db.query(
+    `SELECT id, order_id, product_id, variant_id, sku, title, attributes,
+            quantity, unit_price_cents, list_price_cents, sale_price_cents,
+            discount_cents, tax_cents, total_cents, applied_offer_ids, product_snapshot,
+            status, shipping_cents, created_at, updated_at
+     FROM order_line_items
+     WHERE id = $1
+     ORDER BY created_at ASC`,
+    [id]
+  )
+
+  if (res.rows.length === 0) return null
+
+  return buildOrderLineItem(res.rows[0])
+}
+
+function buildOrderLineItem(row: any): OrderLineItem {
+  return {
     id: row.id,
     orderId: row.order_id,
     productId: row.product_id,
     variantId: row.variant_id,
     sku: row.sku,
     title: row.title,
+    status: row.status,
     attributes: jsonStringObjectToObject<string>(row.attributes),
     quantity: row.quantity,
     unitPriceCents: row.unit_price_cents,
@@ -88,7 +112,8 @@ export async function getOrderLineItemsByOrderId(db: PoolClient, orderId: string
     totalCents: row.total_cents,
     appliedOfferIds: row.applied_offer_ids || [],
     productSnapshot: jsonObjectToStruct(row.product_snapshot),
+    shippingCents: row.shipping_cents,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }))
+  }
 }

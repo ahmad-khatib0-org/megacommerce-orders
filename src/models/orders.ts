@@ -2,6 +2,7 @@ import { OrderStatus, PaymentStatus } from '@megacommerce/proto/orders/v1/order'
 import { OrderIdempotencyKeyStatus } from '@megacommerce/proto/orders/v1/order_idempotency_keys'
 import { OrderEventType } from '@megacommerce/proto/orders/v1/order_events'
 import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/reservation_get'
+import { OrderLineItemStatus } from '@megacommerce/proto/orders/v1/order_line_items'
 
 export const ORDER_IDEMPOTENCY_KEY_EXPIRES_AT_MILISECONDS = 3 * 24 * 60 * 60 * 1000 // 3 days
 
@@ -100,4 +101,42 @@ export function getOrderStatusValue(status: OrderStatus): string {
   }
 
   return mapping[status]
+}
+
+export function getOrderLineItemStatusValue(status: OrderLineItemStatus): string {
+  const mapping: Record<OrderLineItemStatus, string> = {
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CREATED]: 'CREATED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CONFIRMED]: 'CONFIRMED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_SHIPPED]: 'SHIPPED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_DELIVERED]: 'DELIVERED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CANCELLED]: 'CANCELLED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_REFUNDED]: 'REFUNDED',
+    [OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_REFUND_REQUESTED]: 'REFUND_REQUESTED',
+    [OrderLineItemStatus.UNRECOGNIZED]: 'UNRECOGNIZED',
+  }
+
+  return mapping[status]
+}
+
+export function getOrderLineItemStatusFromString(statusStr: string): OrderLineItemStatus {
+  const upperStatus = statusStr.toUpperCase()
+
+  switch (upperStatus) {
+    case 'CREATED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CREATED
+    case 'CONFIRMED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CONFIRMED
+    case 'SHIPPED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_SHIPPED
+    case 'DELIVERED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_DELIVERED
+    case 'CANCELLED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CANCELLED
+    case 'REFUNDED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_REFUNDED
+    case 'REFUND_REQUESTED':
+      return OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_REFUND_REQUESTED
+    default:
+      return OrderLineItemStatus.UNRECOGNIZED
+  }
 }

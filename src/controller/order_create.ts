@@ -150,11 +150,10 @@ export async function orderCreate(
 
     const { error, items: lineItems } = await orderCreateLineItemsValidate(ctx, items, nowMs)
     if (error) return { error: error }
-    const { subtotalCents, totalDiscountCents, totalTaxCents } = lineItems!
+    const { subtotalCents, totalDiscountCents, totalTaxCents, totalShippingCents } = lineItems!
 
     // Shipping and tax calculation (stubbed)
-    const shippingCents = 0 // compute using shipping_method or service
-    const totalCents = subtotalCents - totalDiscountCents + totalTaxCents + shippingCents
+    const totalCents = subtotalCents - totalDiscountCents + totalTaxCents + totalShippingCents
 
     const reservationLines: InventoryReserveRequestItem[] = lineItems!.items.map((l) => ({
       orderLineItemId: l.id,
@@ -175,7 +174,7 @@ export async function orderCreate(
       userId: ctx.session.userId,
       currencyCode: currencyCode,
       subtotalCents: subtotalCents.toString(),
-      shippingCents: shippingCents.toString(),
+      shippingCents: totalShippingCents.toString(),
       taxCents: totalTaxCents.toString(),
       discountCents: totalDiscountCents.toString(),
       totalCents: totalCents.toString(),

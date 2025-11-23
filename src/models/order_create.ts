@@ -3,11 +3,12 @@ import { StatusCode } from 'grpc-web'
 
 import { ProductSnapshot } from '@megacommerce/proto/products/v1/product_snapshot'
 import { OrderLineItemRequest } from '@megacommerce/proto/orders/v1/order_create'
-import { OrderLineItem } from '@megacommerce/proto/orders/v1/order_line_items'
+import { OrderLineItem, OrderLineItemStatus } from '@megacommerce/proto/orders/v1/order_line_items'
 
 import { AppError, createAppError, MSG_ID_ERR_INTERNAL } from './errors'
 import { Context } from './context'
 import { productsClient } from '@/helpers'
+import { getOrderLineItemStatusValue } from './orders'
 
 export async function orderCreateLineItemsValidate(
   ctx: Context,
@@ -20,6 +21,7 @@ export async function orderCreateLineItemsValidate(
     subtotalCents: number
     totalDiscountCents: number
     totalTaxCents: number
+    totalShippingCents: number
   }
 }> {
   let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT) => {
@@ -41,6 +43,7 @@ export async function orderCreateLineItemsValidate(
   let subtotalCents = 0
   let totalDiscountCents = 0
   let totalTaxCents = 0
+  let totalShippingCents = 0
 
   for (const item of lineItems) {
     const { productId, variantId, unitPriceCentsClient, metadata, sku, quantity } = item
@@ -74,11 +77,13 @@ export async function orderCreateLineItemsValidate(
       const lineSubtotal = unitPrice * quantity
       const discountCents = 0 // apply promotions here
       const taxCents = 0 // or call tax service
-      const lineTotal = lineSubtotal - discountCents + taxCents
+      const shippingCents = 223
+      const lineTotal = lineSubtotal - discountCents + taxCents + shippingCents
 
       subtotalCents += lineSubtotal
       totalDiscountCents += discountCents
       totalTaxCents += taxCents
+      totalShippingCents += shippingCents
 
       // NOTE: for the toString() use, uint64 proto message fields got converted to string
       items.push({
@@ -88,6 +93,7 @@ export async function orderCreateLineItemsValidate(
         orderId: '',
         sku: variant.sku,
         title,
+        status: getOrderLineItemStatusValue(OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_CREATED),
         attributes: item.metadata ?? {},
         quantity,
         unitPriceCents: priceCentsDB.toString(),
@@ -98,6 +104,7 @@ export async function orderCreateLineItemsValidate(
         totalCents: lineTotal.toString(),
         appliedOfferIds: [], // fill if promotions applied
         productSnapshot: undefined, // handle it later
+        shippingCents: shippingCents.toString(),
         createdAt: nowMs.toString(),
       })
     } catch (err) {
@@ -105,5 +112,5 @@ export async function orderCreateLineItemsValidate(
     }
   }
 
-  return { items: { items, subtotalCents, totalDiscountCents, totalTaxCents } }
+  return { items: { items, subtotalCents, totalDiscountCents, totalTaxCents, totalShippingCents } }
 }
