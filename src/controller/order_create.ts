@@ -10,6 +10,7 @@ import {
   OrderIdempotencyKey,
   OrderIdempotencyKeyStatus,
 } from '@megacommerce/proto/orders/v1/order_idempotency_keys'
+import { InventoryReservationStatus } from '@megacommerce/proto/inventory/v1/reservation_get'
 import { InventoryReserveRequestItem } from '@megacommerce/proto/inventory/v1/inventory_reserve'
 import { OrderEvent, OrderEventType } from '@megacommerce/proto/orders/v1/order_events'
 
@@ -152,23 +153,7 @@ export async function orderCreate(
     if (error) return { error: error }
     const { subtotalCents, totalDiscountCents, totalTaxCents, totalShippingCents } = lineItems!
 
-    // Shipping and tax calculation (stubbed)
     const totalCents = subtotalCents - totalDiscountCents + totalTaxCents + totalShippingCents
-
-    const reservationLines: InventoryReserveRequestItem[] = lineItems!.items.map((l) => ({
-      orderLineItemId: l.id,
-      productId: l.productId,
-      variantId: l.variantId,
-      sku: l.sku,
-      quantity: l.quantity,
-    }))
-
-    const inventoryResp = await inventoryReserve(ctx, orderId, reservationLines)
-    if (inventoryResp.error) return { error: inventoryResp.error }
-
-    await db.query('BEGIN')
-
-    const inventoryReservationStatus = getInventoryReservationStatusValue(inventoryResp.data!.status)
     const orderPayload: Order = {
       id: orderId,
       userId: ctx.session.userId,
@@ -182,7 +167,9 @@ export async function orderCreate(
       paymentTransactionId: '',
       paymentStatus: getPaymentStatusValue(PaymentStatus.PAYMENT_UNKNOWN),
       paymentFeeCents: '',
-      inventoryReservationStatus: inventoryReservationStatus,
+      inventoryReservationStatus: getInventoryReservationStatusValue(
+        InventoryReservationStatus.INVENTORY_RESERVATION_STATUS_RESERVED
+      ),
       productSource: 'products-service',
       shippingAddress: shippingAddress,
       billingAddress: billingAddress,
@@ -193,8 +180,27 @@ export async function orderCreate(
       deletedAt: undefined,
     }
 
+    await db.query('BEGIN')
+
     try {
       await insertOrder(db, ctx, orderPayload)
+    } catch (err) {
+      await db.query('ROLLBACK')
+      return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
+    }
+
+    const reservationLines: InventoryReserveRequestItem[] = lineItems!.items.map((l) => ({
+      orderLineItemId: l.id,
+      productId: l.productId,
+      variantId: l.variantId,
+      sku: l.sku,
+      quantity: l.quantity,
+    }))
+
+    const inventoryResp = await inventoryReserve(ctx, orderId, reservationLines)
+    if (inventoryResp.error) return { error: inventoryResp.error }
+
+    try {
       await insertOrderLineItems(db, ctx, lineItems!.items, orderId)
       const eventPayload: { [key: string]: any } = {
         reservation_token: inventoryResp.data!.reservationToken,

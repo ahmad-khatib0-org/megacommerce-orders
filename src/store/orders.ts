@@ -102,7 +102,7 @@ export async function updateOrderPaymentSucceeded(
     [
       'stripe',
       getPaymentTransactionID(stripeResult),
-      OrderStatus.ORDER_STATUS_PAYMENT_SUCCEEDED,
+      getPaymentStatusValue(PaymentStatus.PAYMENT_CAPTURED),
       JSON.stringify(stripeResult),
       getPaymentFees(stripeResult),
       getOrderStatusValue(OrderStatus.ORDER_STATUS_CONFIRMED),

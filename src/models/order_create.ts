@@ -60,6 +60,8 @@ export async function orderCreateLineItemsValidate(
     }
 
     try {
+      // TODO: this call is incorrect, we need to call inventory_items table
+      // that returns quantity_available, quantity_reserved,quantity_total ...
       const { offer, title } = await getProductSnapshot(productId)
       const variant = offer?.offer?.[variantId]
       if (!variant) return { error: ai('products.not_found.error', StatusCode.NOT_FOUND) }
@@ -85,6 +87,10 @@ export async function orderCreateLineItemsValidate(
       totalTaxCents += taxCents
       totalShippingCents += shippingCents
 
+      // Calculate estimated delivery date (add processing days to order date)
+      const processingDays = 7 // default processing time
+      const estimatedDeliveryDate = nowMs + processingDays * 24 * 60 * 60 * 1000
+
       // NOTE: for the toString() use, uint64 proto message fields got converted to string
       items.push({
         id: ulid(),
@@ -106,6 +112,7 @@ export async function orderCreateLineItemsValidate(
         productSnapshot: undefined, // handle it later
         shippingCents: shippingCents.toString(),
         createdAt: nowMs.toString(),
+        estimatedDeliveryDate: estimatedDeliveryDate.toString(),
       })
     } catch (err) {
       return { error: err as AppError }

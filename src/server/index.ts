@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 
 import { Common } from '@/common'
-import { initController, runController } from '@/controller'
+import { initController, runController, shutdownServer } from '@/controller'
 import { closeDb, initDb } from './database'
 
 export async function run() {
@@ -13,8 +13,8 @@ export async function run() {
 
   const db = await (await initDb(common.config)).connect()
 
-  shutdown()
   const controller = initController({ db, config: common.config })
+  shutdown()
   await runController(controller)
 }
 
@@ -23,10 +23,8 @@ function shutdown() {
     console.log('Shutting down gracefully...')
 
     try {
-      // Add your server shutdown here when you have one
-      // await server.tryShutdown()
-
       await closeDb()
+      shutdownServer()
       console.log('Shutdown completed')
       process.exit(0)
     } catch (error) {

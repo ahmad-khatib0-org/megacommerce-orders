@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { PoolClient } from 'pg'
-import grpc from '@grpc/grpc-js'
+import * as grpc from '@grpc/grpc-js'
 import type { sendUnaryData, ServerUnaryCall } from '@grpc/grpc-js'
 
 import { Config } from '@megacommerce/proto/common/v1/config'
@@ -65,14 +65,13 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
 }
 
 export async function runController(ctr: Controller) {
-  await new Promise<void>((res, rej) => {
+  await new Promise<void>((_, rej) => {
     const endpoint = 'localhost:50055'
 
     ctr.server.bindAsync(endpoint, grpc.ServerCredentials.createInsecure(), (err, _) => {
       if (err) return rej(err)
       ctr.server.start()
       console.log(`gRPC server started on ${endpoint}`)
-      res()
     })
   })
 }
@@ -86,4 +85,9 @@ const notImplemented = <T>(methodName: string) => {
       },
       null
     )
+}
+
+export function shutdownServer() {
+  if (!_controller) return
+  _controller.server.forceShutdown()
 }

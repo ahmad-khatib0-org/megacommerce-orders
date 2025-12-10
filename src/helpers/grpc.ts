@@ -7,7 +7,7 @@ const Products =
 const Inventory =
   require('@megacommerce/proto/inventory/v1') as typeof import('@megacommerce/proto/inventory/v1')
 
-import { Context, Header } from '@/models'
+import { Context, Headers } from '@/models'
 
 let cachedCommonClient: InstanceType<typeof Common.Common.CommonServiceClient> | null = null
 
@@ -69,29 +69,27 @@ function metadataClientInterceptor(
   return (options, nextCall) => {
     const requester = new RequesterBuilder()
       .withStart((metadata, listener, next) => {
-        metadata.set(Header.Authorization, ctx.session.token)
-        metadata.set(Header.XRequestId, ctx.requestId)
-        metadata.set(Header.XIpAddress, ctx.ipAddress)
-        metadata.set(Header.XForwardedFor, ctx.xForwardedFor)
-        metadata.set(Header.Path, ctx.path)
-        metadata.set(Header.UserAgent, ctx.userAgent)
-        metadata.set(Header.AcceptLanguage, ctx.acceptLanguage)
-        metadata.set(Header.SessionId, ctx.session.id)
-        metadata.set(Header.Token, ctx.session.token)
-        metadata.set(Header.CreatedAt, ctx.session.createdAt.toString())
-        metadata.set(Header.ExpiresAt, ctx.session.expiresAt.toString())
-        metadata.set(Header.LastActivityAt, ctx.session.lastActivityAt.toString())
-        metadata.set(Header.UserId, ctx.session.userId)
-        metadata.set(Header.DeviceId, ctx.session.deviceId)
-        metadata.set(Header.Roles, ctx.session.roles)
-        metadata.set(Header.IsOauth, ctx.session.isOauth.toString())
+        metadata.set(Headers.Authorization, ctx.session.token)
+        metadata.set(Headers.XRequestID, ctx.requestId)
+        metadata.set(Headers.XIPAddress, ctx.ipAddress)
+        metadata.set(Headers.XForwardedFor, ctx.xForwardedFor)
+        metadata.set(Headers.UserAgent, ctx.userAgent)
+        metadata.set(Headers.AcceptLanguage, ctx.acceptLanguage)
+        metadata.set(Headers.XSessionID, ctx.session.id)
+        metadata.set(Headers.XSessionCreatedAt, ctx.session.createdAt.toString())
+        metadata.set(Headers.XSessionExpiresAt, ctx.session.expiresAt.toString())
+        metadata.set(Headers.XLastActivityAt, ctx.session.lastActivityAt.toString())
+        metadata.set(Headers.XUserID, ctx.session.userId)
+        metadata.set(Headers.XDeviceID, ctx.session.deviceId)
+        metadata.set(Headers.XRoles, ctx.session.roles)
+        metadata.set(Headers.XIsOAuth, ctx.session.isOauth.toString())
 
         // Serialize props Map to string
         const propsArray: string[] = []
         ctx.session.props.forEach((value, key) => {
           propsArray.push(`${key}:${value}`)
         })
-        metadata.set(Header.Props, propsArray.join(','))
+        metadata.set(Headers.XProps, propsArray.join(','))
 
         next(metadata, listener)
       })

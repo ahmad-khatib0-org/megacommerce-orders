@@ -1,55 +1,44 @@
-export enum Header {
-  Authorization = 'authorization',
-  XRequestId = 'x-request-id',
-  XIpAddress = 'x-ip-address',
-  XForwardedFor = 'x-forwarded-for',
-  Path = 'path',
-  UserAgent = 'user-agent',
-  AcceptLanguage = 'accept-language',
-  SessionId = 'session-id',
-  Token = 'token',
-  CreatedAt = 'created-at',
-  ExpiresAt = 'expires-at',
-  LastActivityAt = 'last-activity-at',
-  UserId = 'user-id',
-  DeviceId = 'device-id',
-  Roles = 'roles',
-  IsOauth = 'is-oauth',
-  Props = 'props',
-}
+export const Headers = {
+  Authorization: 'authorization',
+  XRequestID: 'x-request-id',
+  XCorrelationID: 'x-correlation-id',
+  XIPAddress: 'x-ip-address',
+  XForwardedFor: 'x-forwarded-for',
+  XForwardedProto: 'x-forwarded-proto',
+  XForwardedHost: 'x-forwarded-host',
+  XClientVersion: 'x-client-version',
+  XClientID: 'x-client-id',
+  XDeviceID: 'x-device-id',
+  XSessionID: 'x-session-id',
+  XUserID: 'x-user-id',
+  XTraceID: 'x-trace-id',
+  XSpanID: 'x-span-id',
+  XRoles: 'x-roles',
+  XIsOAuth: 'x-is-oauth',
+  XSessionCreatedAt: 'x-session-created-at',
+  XSessionExpiresAt: 'x-session-expires-at',
+  XLastActivityAt: 'x-last-activity-at',
+  XProps: 'x-props',
+  XAPIKey: 'x-api-key',
+  XCSRFToken: 'x-csrf-token',
+  XRateLimitLimit: 'x-rate-limit-limit',
+  XRateLimitRemaining: 'x-rate-limit-remaining',
+  XRateLimitReset: 'x-rate-limit-reset',
+  // Standard headers
+  ContentType: 'content-type',
+  UserAgent: 'user-agent',
+  Accept: 'accept',
+  AcceptLanguage: 'accept-language',
+  AcceptEncoding: 'accept-encoding',
+  CacheControl: 'cache-control',
+  // Next.js specific
+  NextAction: 'next-action',
+  NextRouterStateTree: 'next-router-state-tree',
+  // gRPC specific
+  GRPCWeb: 'x-grpc-web',
+  GRPCEncoding: 'grpc-encoding',
+  GRPCMessage: 'grpc-message',
+  GRPCStatus: 'grpc-status',
+} as const
 
-export namespace Header {
-  export function asStr(header: Header): string {
-    return header
-  }
-
-  export function values(): Header[] {
-    return [
-      Header.Authorization,
-      Header.XRequestId,
-      Header.XIpAddress,
-      Header.XForwardedFor,
-      Header.Path,
-      Header.UserAgent,
-      Header.AcceptLanguage,
-      Header.SessionId,
-      Header.Token,
-      Header.CreatedAt,
-      Header.ExpiresAt,
-      Header.LastActivityAt,
-      Header.UserId,
-      Header.DeviceId,
-      Header.Roles,
-      Header.IsOauth,
-      Header.Props,
-    ]
-  }
-
-  export function fromString(value: string): Header | undefined {
-    return values().find((header) => header === value)
-  }
-
-  export function toString(header: Header): string {
-    return header
-  }
-}
+export type Header = (typeof Headers)[keyof typeof Headers]
