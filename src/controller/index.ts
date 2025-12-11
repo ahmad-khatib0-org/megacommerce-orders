@@ -10,6 +10,7 @@ const Orders =
 import { orderCreate } from './order_create'
 import { Context } from '@/models'
 import { middlewareContext } from '@/helpers'
+import { ordersList } from './orders_list'
 
 export interface Controller {
   server: grpc.Server
@@ -51,11 +52,11 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
   const ctr: Controller = { server, db, stripe, config }
 
   const handlers = {
-    OrderCreate: wrapUnaryHandler(orderCreate, ctr),
-    OrderGet: notImplemented('OrderGet'),
-    OrdersList: notImplemented('OrdersList'),
-    OrderCancel: notImplemented('OrderCancel'),
-    OrderRefund: notImplemented('OrderRefund'),
+    orderCreate: wrapUnaryHandler(orderCreate, ctr),
+    ordersList: wrapUnaryHandler(ordersList, ctr),
+    orderGet: notImplemented('OrderGet'),
+    orderCancel: notImplemented('OrderCancel'),
+    orderRefund: notImplemented('OrderRefund'),
   }
 
   server.addService(Orders.OrdersServiceService, handlers)
@@ -66,7 +67,7 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
 
 export async function runController(ctr: Controller) {
   await new Promise<void>((_, rej) => {
-    const endpoint = 'localhost:50055'
+    const endpoint = process.env['ORDERS_GRPC_ENDPOINT'] as string
 
     ctr.server.bindAsync(endpoint, grpc.ServerCredentials.createInsecure(), (err, _) => {
       if (err) return rej(err)

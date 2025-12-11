@@ -1,6 +1,10 @@
 import { ServerUnaryCall } from '@grpc/grpc-js'
 import { StatusCode } from 'grpc-web'
-import { OrdersListRequest, OrdersListResponse } from '@megacommerce/proto/orders/v1/orders_list'
+import {
+  OrdersListRequest,
+  OrdersListResponse,
+  OrdersListResponseData,
+} from '@megacommerce/proto/orders/v1/orders_list'
 
 import { Controller } from '.'
 import { listOrdersForUser } from '@/store/orders_list'
@@ -22,12 +26,13 @@ export async function ordersList(
     const pageSize = 20
     const lastId = pagination?.lastId ?? ''
     const orders = await listOrdersForUser(ctr.db, ctx.session.userId, { pageSize, lastId })
-    return {
-      data: {
-        orders,
-        pagination: buildPaginationResponse(pagination!, orders.length),
-      },
-    }
+
+    const data = OrdersListResponseData.create({
+      orders,
+      pagination: buildPaginationResponse(pagination!, orders.length),
+    })
+
+    return OrdersListResponse.create({ data })
   } catch (err: any) {
     const errors = { err, errorsInternal: null, errorsNestedInternal: null }
     return {

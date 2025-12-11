@@ -1,6 +1,7 @@
 import { PoolClient } from 'pg'
 
 import { OrderListItem } from '@megacommerce/proto/orders/v1/orders_list'
+import { getInventoryReservationStatusFromString } from '@/models'
 
 export async function listOrdersForUser(
   db: PoolClient,
@@ -21,17 +22,19 @@ export async function listOrdersForUser(
 
   const processRows = (rows: any[]) => {
     return rows.map<OrderListItem>((r) => {
-      return {
+      return OrderListItem.create({
         id: r.id,
+        shippingCents: r.shipping_cents.toString(),
         currencyCode: r.currency_code,
-        totalCents: r.total_cents,
+        totalCents: r.total_cents.toString(),
         status: r.status,
-        createdAt: r.created_at,
-        inventoryReservationStatus: r.inventory_reservation_status,
-        shippingCents: r.shipping_cents,
-      }
+        createdAt: r.created_at.toString(),
+        inventoryReservationStatus: getInventoryReservationStatusFromString(r.inventory_reservation_status),
+        items: [],
+      })
     })
   }
+
   if (lastId) {
     const res = await db.query(`${select} WHERE user_id = $1 AND id < $2 ORDER BY id DESC LIMIT $3`, [
       userId,
