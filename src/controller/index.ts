@@ -11,6 +11,10 @@ import { orderCreate } from './order_create'
 import { Context } from '@/models'
 import { middlewareContext } from '@/helpers'
 import { ordersList } from './orders_list'
+import { paymentAddMethod } from './payment_add_method'
+import { paymentRemoveMethod } from './payment_remove_method'
+import { paymentMakeDefault } from './payment_make_default'
+import { paymentsList } from './payments_list'
 
 export interface Controller {
   server: grpc.Server
@@ -57,6 +61,10 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
     orderGet: notImplemented('OrderGet'),
     orderCancel: notImplemented('OrderCancel'),
     orderRefund: notImplemented('OrderRefund'),
+    paymentAddMethod: wrapUnaryHandler(paymentAddMethod, ctr),
+    paymentRemoveMethod: wrapUnaryHandler(paymentRemoveMethod, ctr),
+    paymentMakeDefault: wrapUnaryHandler(paymentMakeDefault, ctr),
+    paymentsList: wrapUnaryHandler(paymentsList, ctr),
   }
 
   server.addService(Orders.OrdersServiceService, handlers)
