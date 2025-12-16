@@ -75,8 +75,7 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
 
 export async function runController(ctr: Controller) {
   await new Promise<void>((_, rej) => {
-    const endpoint = process.env['ORDERS_GRPC_ENDPOINT'] as string
-
+    const endpoint = ctr.config.services?.ordersServiceGrpcUrl ?? ''
     ctr.server.bindAsync(endpoint, grpc.ServerCredentials.createInsecure(), (err, _) => {
       if (err) return rej(err)
       ctr.server.start()
@@ -86,14 +85,10 @@ export async function runController(ctr: Controller) {
 }
 
 const notImplemented = <T>(methodName: string) => {
-  return (_: any, callback: sendUnaryData<T>) =>
-    callback(
-      {
-        code: grpc.status.UNIMPLEMENTED,
-        message: `${methodName} not implemented`,
-      },
-      null
-    )
+  return (_: any, callback: sendUnaryData<T>) => {
+    const message = `${methodName} is not implemented`
+    return callback({ code: grpc.status.UNIMPLEMENTED, message }, null)
+  }
 }
 
 export function shutdownServer() {
