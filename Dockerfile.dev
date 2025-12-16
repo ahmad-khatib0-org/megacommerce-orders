@@ -1,0 +1,31 @@
+# Multi-stage build for Node.js service
+FROM node:23-alpine AS base
+
+WORKDIR /app
+
+ENV ENV=dev \
+    NODE_ENV=development
+
+# Install build tools
+RUN apk add --no-cache python3 make g++ curl
+
+# Install pnpm
+RUN npm install -g pnpm@10.10.0
+
+# Dependencies stage
+FROM base AS deps
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+RUN pnpm install --frozen-lockfile
+
+# Development stage
+FROM base AS dev
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY --from=deps /app/node_modules ./node_modules
+
+COPY . .
+
+EXPOSE 50055
+
+CMD ["pnpm", "dev:watch"]
