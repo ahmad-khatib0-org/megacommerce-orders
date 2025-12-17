@@ -1,5 +1,5 @@
 import { Config } from '@megacommerce/proto/common/v1'
-import { ConfigGetRequest } from '@megacommerce/proto/common/v1/config'
+import { ConfigGetRequest, Environment } from '@megacommerce/proto/common/v1/config'
 
 import { commonClient } from '@/helpers'
 import { appErrorProtoToError, ErrorType, InternalError, Trans } from '@/models'
@@ -13,7 +13,7 @@ export class Common {
     return this._config
   }
 
-  async init(): Promise<void> {
+  async init(env: 'local' | 'dev' | 'production' = 'local'): Promise<void> {
     const path = 'orders.common.init'
 
     const ie = (err: Error, msg: string, typ?: ErrorType) => {
@@ -27,8 +27,9 @@ export class Common {
       })
     })
 
+    const envEnum = this.stringToEnvEnum(env)
     const config = await new Promise<Config.Config>((res, _) => {
-      commonClient().configGet(ConfigGetRequest.create(), (err, response) => {
+      commonClient().configGet(ConfigGetRequest.create({ env: envEnum }), (err, response) => {
         const msg = 'failed to get configurations'
         if (err) throw ie(err, msg)
         if (response.error) throw ie(appErrorProtoToError(response.error), msg)
@@ -39,5 +40,18 @@ export class Common {
     this._config = config
 
     await Trans.init(commonClient())
+  }
+
+  private stringToEnvEnum(env: string): number {
+    switch (env) {
+      case 'local':
+        return Environment.LOCAL
+      case 'dev':
+        return Environment.DEV
+      case 'production':
+        return Environment.PRODUCTION
+      default:
+        return Environment.DEV
+    }
   }
 }

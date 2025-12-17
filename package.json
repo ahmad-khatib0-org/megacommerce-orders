@@ -21,6 +21,7 @@
   "author": "AHMAD KHATIB",
   "license": "MIT",
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "nodemon": "^3.1.11",
@@ -30,9 +31,10 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.1",
-    "@megacommerce/proto": "^0.4.56",
+    "@megacommerce/proto": "^0.4.65",
     "dotenv": "^17.2.3",
     "grpc-web": "^2.0.2",
+    "js-yaml": "^4.1.1",
     "mustache": "^4.2.0",
     "pg": "^8.16.3",
     "stripe": "^19.3.1",
