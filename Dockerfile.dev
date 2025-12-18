@@ -16,7 +16,7 @@ RUN npm install -g pnpm@10.10.0
 FROM base AS deps
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod --prefer-offline
 
 # Development stage
 FROM base AS dev
