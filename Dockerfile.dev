@@ -1,31 +1,33 @@
-# Multi-stage build for Node.js service
-FROM node:23-alpine AS base
+# Multi-stage build for Rust service
+# Stage 1: Builder (musl for static linking)
+FROM rust:alpine AS builder
 
 WORKDIR /app
 
-ENV ENV=dev \
-    NODE_ENV=development
+# Install build dependencies for Alpine
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev build-base postgresql-dev
 
-# Install build tools
-RUN apk add --no-cache python3 make g++ curl
+# Copy source
+COPY Cargo.toml Cargo.lock ./
+COPY .sqlx ./.sqlx
+COPY src ./src
 
-# Install pnpm
-RUN npm install -g pnpm@10.10.0
+# Build release binary (statically linked)
+RUN cargo build --release --target x86_64-unknown-linux-musl && \
+    strip target/x86_64-unknown-linux-musl/release/megacommerce-products
 
-# Dependencies stage
-FROM base AS deps
+# Stage 2: Tiny runtime image
+FROM alpine:latest
 
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-RUN pnpm install --frozen-lockfile --prod --prefer-offline
+WORKDIR /app
 
-# Development stage
-FROM base AS dev
+# Install runtime dependencies ONLY
+RUN apk add --no-cache libgcc postgresql-client curl ca-certificates
 
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY --from=deps /app/node_modules ./node_modules
+# Copy stripped binary from builder
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/megacommerce-products /usr/local/bin/
+COPY config.yaml ./
 
-COPY . .
+EXPOSE 50053
 
-EXPOSE 50055
-
-CMD ["pnpm", "dev:watch"]
+CMD ["/usr/local/bin/megacommerce-products"]
