@@ -47,6 +47,9 @@ export async function orderCreate(
   ctx: Context,
   req: ServerUnaryCall<OrderCreateRequest, OrderCreateResponse>
 ) {
+  const startTime = Date.now()
+  ctr.metrics.orderCreateTotal.inc()
+
   // Steps:
   // 1. validate req
   // 2. idempotency check (order_idempotency_keys)
@@ -60,6 +63,7 @@ export async function orderCreate(
   let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT, err?: Error) => {
     let errors: AppErrorErrors | undefined
     if (err) errors = { err, errorsInternal: null, errorsNestedInternal: null }
+    ctr.metrics.orderCreateErrors.inc()
     return createAppError(ctx, 'orders.controller.orderCreate', id, null, '', statusCode, errors).toProto()
   }
 
@@ -198,7 +202,12 @@ export async function orderCreate(
     }))
 
     const inventoryResp = await inventoryReserve(ctx, orderId, reservationLines)
-    if (inventoryResp.error) return { error: inventoryResp.error }
+    if (inventoryResp.error) {
+      ctr.metrics.orderCreateErrors.inc()
+      ctr.metrics.inventoryReserveTotal.inc()
+      return { error: inventoryResp.error }
+    }
+    ctr.metrics.inventoryReserveTotal.inc()
 
     try {
       await insertOrderLineItems(db, ctx, lineItems!.items, orderId)
@@ -224,12 +233,16 @@ export async function orderCreate(
 
     let stripeResult: Stripe.PaymentIntent
     try {
+      ctr.metrics.paymentChargeTotal.inc()
       stripeResult = await chargePayment(ctr, totalCents, currencyCode, paymentMethodToken, idempotencyKey)
     } catch (chargeErr) {
+      ctr.metrics.paymentChargeErrors.inc()
+      ctr.metrics.orderCreateErrors.inc()
       // Payment failed or timed out: release inventory and mark failure
 
       // TODO:: retry the request and if still fails, send it to DLQ topic
       try {
+        ctr.metrics.inventoryReleaseTotal.inc()
         await inventoryRelease(ctx, inventoryResp.data!.reservationToken)
       } catch (err) {
         console.error('inventory release failed after payment error', err)
@@ -287,6 +300,8 @@ export async function orderCreate(
       let status = OrderIdempotencyKeyStatus.ORDER_IDEMPOTENCY_KEY_STATUS_COMPLETED
       updateOrderIdempotencyKeyAfterSuccessPayment(db, orderId, status, nowAfterSuccess, idempotencyKey)
       await db.query('COMMIT')
+      const duration = (Date.now() - startTime) / 1000
+      ctr.metrics.requestDuration.observe(duration)
     } catch (successDbErr) {
       await db.query('ROLLBACK')
       // If DB update fails after charge, we need reconciliation. Log and return error.
@@ -294,6 +309,7 @@ export async function orderCreate(
       // TODO: send the required data to a DLQ to be processed
       const msg = 'Failed to finalize order after successful payment, schedule reconciliation'
       console.error(msg, successDbErr)
+      ctr.metrics.orderCreateErrors.inc()
       return {
         data: {
           message: Trans.tr(ctx.acceptLanguage, 'orders.create.already_created'),
@@ -302,6 +318,7 @@ export async function orderCreate(
     }
   } catch (err) {
     console.error('orderCreate unexpected error', err)
+    ctr.metrics.orderCreateErrors.inc()
     try {
       await db.query('ROLLBACK')
     } catch (rbErr) {

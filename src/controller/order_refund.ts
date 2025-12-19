@@ -21,11 +21,14 @@ export async function orderRefund(
   ctx: Context,
   req: ServerUnaryCall<OrderRefundRequest, OrderRefundResponse>
 ): Promise<OrderRefundResponse> {
+  const startTime = Date.now()
+  ctr.metrics.orderRefundTotal.inc()
   const { orderId, reason, refundShipping, item } = req.request
 
   let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT, err?: Error) => {
     let errors: AppErrorErrors | undefined
     if (err) errors = { err, errorsInternal: null, errorsNestedInternal: null }
+    ctr.metrics.orderRefundErrors.inc()
     return createAppError(ctx, 'orders.controller.orderCancel', id, null, '', statusCode, errors).toProto()
   }
 
@@ -41,6 +44,8 @@ export async function orderRefund(
     const refunded = getOrderLineItemStatusValue(OrderLineItemStatus.ORDER_LINE_ITEM_STATUS_REFUNDED)
     if (orderLineItem.status === refunded) {
       const message = Trans.tr(ctx.acceptLanguage, 'orders.refund.alread_refunded')
+      const duration = (Date.now() - startTime) / 1000
+      ctr.metrics.requestDuration.observe(duration)
       return { data: { message, metadata: {} } }
     }
 
@@ -48,8 +53,11 @@ export async function orderRefund(
     await refundOrder(ctr.db, ctx, orderId, event)
 
     const message = Trans.tr(ctx.acceptLanguage, 'orders.refund.successfully')
+    const duration = (Date.now() - startTime) / 1000
+    ctr.metrics.requestDuration.observe(duration)
     return { data: { message, metadata: { order_id: orderId } } }
   } catch (err: any) {
+    ctr.metrics.orderRefundErrors.inc()
     return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL, err) }
   }
 }

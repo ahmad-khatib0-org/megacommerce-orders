@@ -12,11 +12,14 @@ export async function orderGet(
   ctx: Context,
   req: ServerUnaryCall<OrderGetRequest, OrderGetResponse>
 ) {
+  const startTime = Date.now()
+  ctr.metrics.orderGetTotal.inc()
   const orderId = req.request.orderId
 
   let ai = (id: string, statusCode: StatusCode = StatusCode.INVALID_ARGUMENT, err?: Error) => {
     let errors: AppErrorErrors | undefined
     if (err) errors = { err, errorsInternal: null, errorsNestedInternal: null }
+    ctr.metrics.orderGetErrors.inc()
     return createAppError(ctx, 'orders.controller.orderGet', id, null, '', statusCode, errors).toProto()
   }
 
@@ -29,8 +32,11 @@ export async function orderGet(
     const lines = await getOrderLineItemsByOrderId(ctr.db, orderId)
     order.lineItems = lines
 
+    const duration = (Date.now() - startTime) / 1000
+    ctr.metrics.requestDuration.observe(duration)
     return { data: order }
   } catch (err: any) {
+    ctr.metrics.orderGetErrors.inc()
     return { error: ai(MSG_ID_ERR_INTERNAL, StatusCode.INTERNAL), err }
   }
 }

@@ -14,6 +14,8 @@ export async function paymentAddMethod(
   ctx: Context,
   req: ServerUnaryCall<PaymentAddMethodRequest, PaymentAddMethodResponse>
 ): Promise<PaymentAddMethodResponse> {
+  const startTime = Date.now()
+  ctr.metrics.paymentAddMethodTotal.inc()
   const path = 'orders.controller.paymentAddMethod'
 
   try {
@@ -25,8 +27,11 @@ export async function paymentAddMethod(
       token: req.request.token,
     })
 
+    const duration = (Date.now() - startTime) / 1000
+    ctr.metrics.requestDuration.observe(duration)
     return PaymentAddMethodResponse.create({ data: method })
   } catch (err: any) {
+    ctr.metrics.paymentAddMethodErrors.inc()
     const errors = { err, errorsInternal: null, errorsNestedInternal: null }
     return {
       error: createAppError(ctx, path, MSG_ID_ERR_INTERNAL, null, '', StatusCode.INTERNAL, errors).toProto(),

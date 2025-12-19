@@ -1,7 +1,12 @@
+// Initialize OpenTelemetry first, before other imports
+import '@/otel/init'
+
 import Stripe from 'stripe'
 import { PoolClient } from 'pg'
 import * as grpc from '@grpc/grpc-js'
 import type { sendUnaryData, ServerUnaryCall } from '@grpc/grpc-js'
+import * as http from 'http'
+import { register } from 'prom-client'
 
 import { Config } from '@megacommerce/proto/common/v1/config'
 const Orders =
@@ -15,12 +20,14 @@ import { paymentAddMethod } from './payment_add_method'
 import { paymentRemoveMethod } from './payment_remove_method'
 import { paymentMakeDefault } from './payment_make_default'
 import { paymentsList } from './payments_list'
+import { createMetricsCollector, MetricsCollector } from '@/otel'
 
 export interface Controller {
   server: grpc.Server
   db: PoolClient
   stripe: Stripe
   config: Config
+  metrics: MetricsCollector
 }
 
 let _controller: Controller
@@ -53,7 +60,8 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
   const server = new grpc.Server()
 
   const stripe = new Stripe(process.env['STRIPE_API_KEY'] as string)
-  const ctr: Controller = { server, db, stripe, config }
+  const metrics = createMetricsCollector()
+  const ctr: Controller = { server, db, stripe, config, metrics }
 
   const handlers = {
     orderCreate: wrapUnaryHandler(orderCreate, ctr),
@@ -74,6 +82,20 @@ export function initController({ db, config }: { db: PoolClient; config: Config 
 }
 
 export async function runController(ctr: Controller) {
+  // Setup Prometheus metrics endpoint on port 8064
+  const metricsServer = http.createServer((req, res) => {
+    if (req.url === '/metrics') {
+      res.setHeader('Content-Type', register.contentType)
+      res.end(register.metrics())
+    } else {
+      res.writeHead(404)
+      res.end('Not found')
+    }
+  })
+  metricsServer.listen(8064, () => {
+    console.log('Prometheus metrics server listening on port 8064')
+  })
+
   await new Promise<void>((_, rej) => {
     const endpoint = ctr.config.services?.ordersServiceGrpcUrl ?? ''
     ctr.server.bindAsync(endpoint, grpc.ServerCredentials.createInsecure(), (err, _) => {
