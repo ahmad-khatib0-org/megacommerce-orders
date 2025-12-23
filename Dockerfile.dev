@@ -5,16 +5,14 @@ WORKDIR /app
 
 ENV ENV=dev \
     NODE_ENV=development \
-    # Set PNPM home for global packages
     PNPM_HOME="/pnpm" \
-    PATH="$PNPM_HOME:$PATH"
-
+    PATH="/pnpm:$PATH" \
+    SHELL="/bin/sh"
+    
 # Install build tools and pnpm
 RUN apk add --no-cache python3 make g++ curl && \
     npm install -g pnpm@10.10.0 && \
-    # Setup pnpm global directory
-    pnpm setup && \
-    # Install global packages
+    pnpm setup && source /root/.bashrc && \
     pnpm add -g nodemon
 
 # Dependencies stage
