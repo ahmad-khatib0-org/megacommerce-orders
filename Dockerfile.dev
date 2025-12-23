@@ -6,14 +6,11 @@ WORKDIR /app
 ENV ENV=dev \
     NODE_ENV=development \
     PNPM_HOME="/pnpm" \
-    PATH="/pnpm:$PATH" \
-    SHELL="/bin/sh"
-    
-# Install build tools and pnpm
+    PATH="/pnpm:$PATH"
+
+# Install build tools and pnpm 
 RUN apk add --no-cache python3 make g++ curl && \
-    npm install -g pnpm@10.10.0 && \
-    pnpm setup && source /root/.bashrc && \
-    pnpm add -g nodemon
+    npm install -g pnpm@10.10.0 nodemon@3.1.9
 
 # Dependencies stage
 FROM base AS deps
