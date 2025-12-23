@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+coverage/
+*.log
+
+# pnpm
+.pnpm-store/
+.pnpm-debug.log
+
+# TypeScript/build files
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Tests
+__tests__/
+__mocks__/
+*.test.*
+*.spec.*
+jest.config.*

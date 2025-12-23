@@ -4,29 +4,28 @@ FROM node:23-alpine AS base
 WORKDIR /app
 
 ENV ENV=dev \
-    NODE_ENV=development
+    NODE_ENV=development \
+    # Set PNPM home for global packages
+    PNPM_HOME="/pnpm" \
+    PATH="$PNPM_HOME:$PATH"
 
-# Install build tools
-RUN apk add --no-cache python3 make g++ curl
-
-# Install pnpm
-RUN npm install -g pnpm@10.10.0
+# Install build tools and pnpm
+RUN apk add --no-cache python3 make g++ curl && \
+    npm install -g pnpm@10.10.0 && \
+    # Setup pnpm global directory
+    pnpm setup && \
+    # Install global packages
+    pnpm add -g nodemon
 
 # Dependencies stage
 FROM base AS deps
-
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 RUN pnpm install --frozen-lockfile --prod --prefer-offline
-RUN pnpm add -g nodemon
 
 # Development stage
 FROM base AS dev
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY --from=deps /app/node_modules ./node_modules
-
 COPY . .
 
 EXPOSE 50055
-
 CMD ["pnpm", "dev:watch"]
